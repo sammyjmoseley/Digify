@@ -74,32 +74,40 @@ def cnn_model_fn(features, labels, mode):
   return model_fn_lib.ModelFnOps(
       mode=mode, predictions=predictions, loss=loss, train_op=train_op)
 
+prediction = None
+
 def main(unused_argv):
   # Load training and eval data
-  training_set = tf.contrib.learn.datasets.base.load_csv_without_header(filename="trainX.csv",target_dtype=np.float32,features_dtype=np.float32)
-  train_data = np.append(training_set.data, np.transpose(np.array([training_set.target])), axis=1)
-  print("hello")
-  training_labels = tf.contrib.learn.datasets.base.load_csv_without_header(filename="trainY.csv",target_dtype=np.float32,features_dtype=np.float32)
-  train_labels = training_set.target
+  # training_set = tf.contrib.learn.datasets.base.load_csv_without_header(filename="trainX.csv",target_dtype=np.float32,features_dtype=np.float32)
+  # train_data = np.append(training_set.data, np.transpose(np.array([training_set.target])), axis=1)
+  # print("hello")
+  # training_labels = tf.contrib.learn.datasets.base.load_csv_without_header(filename="trainY.csv",target_dtype=np.float32,features_dtype=np.float32)
+  # train_labels = training_set.target
   mnist_classifier = learn.Estimator(
       model_fn=cnn_model_fn, model_dir="mnist_convnet_model")
   # Set up logging for predictions
-  tensors_to_log = {"probabilities": "softmax_tensor"}
-  logging_hook = tf.train.LoggingTensorHook(
-      tensors=tensors_to_log, every_n_iter=50)
-  mnist_classifier.fit(
-    x=train_data,
-    y=train_labels,
-    batch_size=100,
-    steps=20000,
-    monitors=[logging_hook])
+  # tensors_to_log = {"probabilities": "softmax_tensor"}
+  # logging_hook = tf.train.LoggingTensorHook(
+  #     tensors=tensors_to_log, every_n_iter=50)
+  # mnist_classifier.fit(
+  #   x=train_data,
+  #   y=train_labels,
+  #   batch_size=100,
+  #   steps=20000,
+  #   monitors=[logging_hook])
 #   metrics = {
 #     "accuracy":
 #         learn.MetricSpec(
 #             metric_fn=tf.metrics.accuracy, prediction_key="classes"),
 # }
 #   eval_results = mnist_classifier.evaluate(
-#     x=eval_data, y=eval_labels, metrics=metrics)
+#     x=train_data, y=train_labels, metrics=metrics)
 #   print(eval_results)
+  prediction = list(mnist_classifier.predict(x=np.array([[np.float32(0.5) for _ in range(0, 784)], [np.float32(0.6) for _ in range(0, 784)]])))
+  prediction = [x['probabilities'] for x in prediction]
+  arg_max = [np.argmax(arr) for arr in prediction]
+  ret = np.zeros((len(prediction), len(prediction[0])), np.float32)
+  ret[np.arange(len(prediction)), arg_max] = np.float32(1)
+  print(ret)
 
 main("hello")
