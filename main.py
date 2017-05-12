@@ -27,14 +27,17 @@ def cnn_model_fn(features, labels, mode):
   # Pooling Layer #1
   pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
 
-  # Convolutional Layer #2 and Pooling Layer #2
-  conv2 = tf.layers.conv2d(
-      inputs=pool1,
-      filters=64,
-      kernel_size=[5, 5],
-      padding="same",
-      activation=tf.nn.relu)
-  pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
+  last = pool1
+  for i in range(0, 10):
+    # Convolutional Layer #2 and Pooling Layer #2
+    conv2 = tf.layers.conv2d(
+        inputs=last,
+        filters=64,
+        kernel_size=[5, 5],
+        padding="same",
+        activation=tf.nn.relu)
+    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
+    last = pool2
 
   # Dense Layer
   pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
@@ -78,23 +81,26 @@ prediction = None
 
 def main(unused_argv):
   # Load training and eval data
+  
   # training_set = tf.contrib.learn.datasets.base.load_csv_without_header(filename="trainX.csv",target_dtype=np.float32,features_dtype=np.float32)
   # train_data = np.append(training_set.data, np.transpose(np.array([training_set.target])), axis=1)
-  # print("hello")
+  # # print("hello")
   # training_labels = tf.contrib.learn.datasets.base.load_csv_without_header(filename="trainY.csv",target_dtype=np.float32,features_dtype=np.float32)
-  # train_labels = training_set.target
+  # train_labels = training_labels.data
+  # train_labels = [np.argmax(arr) for arr in train_labels]
+
   mnist_classifier = learn.Estimator(
-      model_fn=cnn_model_fn, model_dir="mnist_convnet_model")
+      model_fn=cnn_model_fn, model_dir="mnist_convnet_model5")
   # Set up logging for predictions
-  # tensors_to_log = {"probabilities": "softmax_tensor"}
-  # logging_hook = tf.train.LoggingTensorHook(
-  #     tensors=tensors_to_log, every_n_iter=50)
-  # mnist_classifier.fit(
-  #   x=train_data,
-  #   y=train_labels,
-  #   batch_size=100,
-  #   steps=20000,
-  #   monitors=[logging_hook])
+  tensors_to_log = {"probabilities": "softmax_tensor"}
+#   logging_hook = tf.train.LoggingTensorHook(
+#       tensors=tensors_to_log, every_n_iter=1000)
+#   mnist_classifier.fit(
+#     x=train_data,
+#     y=train_labels,
+#     batch_size=100,
+#     steps=20000,
+#     monitors=[logging_hook])
 #   metrics = {
 #     "accuracy":
 #         learn.MetricSpec(
@@ -103,11 +109,16 @@ def main(unused_argv):
 #   eval_results = mnist_classifier.evaluate(
 #     x=train_data, y=train_labels, metrics=metrics)
 #   print(eval_results)
-  prediction = list(mnist_classifier.predict(x=np.array([[np.float32(0.5) for _ in range(0, 784)], [np.float32(0.6) for _ in range(0, 784)]])))
+
+  testing_set = tf.contrib.learn.datasets.base.load_csv_without_header(filename="testX.csv",target_dtype=np.float32,features_dtype=np.float32)
+  test_data = np.append(testing_set.data, np.transpose(np.array([testing_set.target])), axis=1)
+
+  # prediction = list(mnist_classifier.predict(x=np.array([[np.float32(0.5) for _ in range(0, 784)], [np.float32(0.6) for _ in range(0, 784)]])))
+  
+  prediction = list(mnist_classifier.predict(x=test_data))
   prediction = [x['probabilities'] for x in prediction]
-  arg_max = [np.argmax(arr) for arr in prediction]
-  ret = np.zeros((len(prediction), len(prediction[0])), np.float32)
-  ret[np.arange(len(prediction)), arg_max] = np.float32(1)
-  print(ret)
+
+  ret = [[int(i), int(np.argmax(arr))] for (i, arr) in zip(range(0,len(prediction)),prediction)]
+  np.savetxt("testY.csv", ret, delimiter=",", fmt='%i', header="id,digit")
 
 main("hello")
